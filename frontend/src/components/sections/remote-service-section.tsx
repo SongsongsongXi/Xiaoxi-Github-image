@@ -112,7 +112,7 @@ export function RemoteServiceSection({
             <AlertCircle className="size-4" />
             <AlertTitle>服务提示</AlertTitle>
             <AlertDescription>
-              服务端首次启动会在同目录自动生成data/config.json与data/app.db。主管理密钥拥有完整管理权限，上传成功后的远程同步只写入图片元数据，不接管 GitHub 文件本体。
+              服务端位于 <code>backend/image_center_server.py</code>，首次启动会在 <code>backend/data/</code> 下自动生成配置与数据库。主管理密钥拥有完整管理权限，上传成功后的远程同步只写入图片元数据，不接管 GitHub 文件本体。
             </AlertDescription>
           </Alert>
 
