@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python cache and local service data
+__pycache__/
+*.py[cod]
+data/
