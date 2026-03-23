@@ -21,6 +21,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { getRuntimeAssetPath } from "@/lib/runtime-storage";
 
 export type AppSection =
   | "overview"
@@ -59,6 +60,8 @@ export function AppSidebar({
   onSectionChange: (section: AppSection) => void;
   recordCount: number;
 }) {
+  const logoSrc = getRuntimeAssetPath("logo.png");
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -67,10 +70,10 @@ export function AppSidebar({
             <SidebarMenuButton size="lg" asChild>
               <button type="button" onClick={() => onSectionChange("overview")}>
                 <div className="flex aspect-square size-8 items-center justify-center">
-                  <img src="/logo.png" alt="小曦 GitHub 图床" className="size-full object-contain" />
+                  <img src={logoSrc} alt="小曦 GitHub 图床" className="size-full object-contain" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium"> 小曦 GitHub 图床</span>
+                  <span className="truncate font-medium">小曦 GitHub 图床</span>
                   <span className="truncate text-xs">开源图床项目 Broccoli V2.0</span>
                 </div>
               </button>
@@ -108,7 +111,7 @@ export function AppSidebar({
           <div className="text-sidebar-foreground/70">本地记录</div>
           <div className="mt-1 text-xl font-semibold">{recordCount}</div>
           <div className="mt-2 text-xs leading-5 text-sidebar-foreground/70">
-            Token 保存在浏览器本地，建议仅在自己的设备上使用。
+            Token 保存在本地配置中，建议仅在自己的设备上使用。
           </div>
         </div>
       </SidebarFooter>

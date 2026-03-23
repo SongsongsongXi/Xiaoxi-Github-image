@@ -27,3 +27,6 @@ dist-ssr
 __pycache__/
 *.py[cod]
 data/
+
+# Local desktop packaging workspace
+desktop/

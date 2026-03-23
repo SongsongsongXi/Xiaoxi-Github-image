@@ -103,6 +103,12 @@ import {
   type RemoteServerSettings,
   type RemoteServiceSettings,
 } from "@/lib/remote-service";
+import {
+  getRuntimeAssetPath,
+  getRuntimeStoragePath,
+  readRuntimeStorage,
+  writeRuntimeStorage,
+} from "@/lib/runtime-storage";
 import { downloadSettingsFile, parseSettingsFile } from "@/lib/settings-transfer";
 
 const STORAGE_KEY = "github-image-host-state";
@@ -167,6 +173,23 @@ const IMAGE_TYPE_OPTIONS = [
   { label: "WebP", value: "webp" },
   { label: "GIF", value: "gif" },
 ] as const;
+
+function createDefaultPersistedState(): PersistedState {
+  return {
+    config: defaultConfig,
+    records: [],
+    repoSettingsMap: {},
+    remoteServiceSettings: defaultRemoteServiceSettings,
+    remoteApiKeySecrets: {},
+    watermarkSettings: defaultWatermarkSettings,
+    compressionSettings: defaultCompressionSettings,
+    namingSettings: defaultNamingSettings,
+    repoFileRefreshInterval: DEFAULT_REPO_FILE_REFRESH_INTERVAL,
+    theme: "light",
+    onboardingSeen: false,
+    activityLogs: [],
+  };
+}
 
 type SelectedFileInsight = {
   key: string;
@@ -318,22 +341,9 @@ function getRepoPrivateStatus(
   return repoList.some((repo) => repo.owner === owner && repo.name === repoName && repo.private);
 }
 
-function readPersistedState(): PersistedState {
-  const raw = localStorage.getItem(STORAGE_KEY);
+function normalizePersistedState(raw: string | null): PersistedState {
   if (!raw) {
-    return {
-      config: defaultConfig,
-      records: [],
-      repoSettingsMap: {},
-      remoteServiceSettings: defaultRemoteServiceSettings,
-      watermarkSettings: defaultWatermarkSettings,
-      compressionSettings: defaultCompressionSettings,
-      namingSettings: defaultNamingSettings,
-      repoFileRefreshInterval: DEFAULT_REPO_FILE_REFRESH_INTERVAL,
-      theme: "light",
-      onboardingSeen: false,
-      activityLogs: [],
-    };
+    return createDefaultPersistedState();
   }
 
   try {
@@ -392,20 +402,7 @@ function readPersistedState(): PersistedState {
       ),
     };
   } catch {
-    return {
-      config: defaultConfig,
-      records: [],
-      repoSettingsMap: {},
-      remoteServiceSettings: defaultRemoteServiceSettings,
-      remoteApiKeySecrets: {},
-      watermarkSettings: defaultWatermarkSettings,
-      compressionSettings: defaultCompressionSettings,
-      namingSettings: defaultNamingSettings,
-      repoFileRefreshInterval: DEFAULT_REPO_FILE_REFRESH_INTERVAL,
-      theme: "light",
-      onboardingSeen: false,
-      activityLogs: [],
-    };
+    return createDefaultPersistedState();
   }
 }
 
@@ -415,6 +412,7 @@ async function copyText(value: string, message: string) {
 }
 
 export default function App() {
+  const logoSrc = getRuntimeAssetPath("logo.png");
   const [activeSection, setActiveSection] = useState<AppSection>("overview");
   const [config, setConfig] = useState<GitHubConfig>(defaultConfig);
   const [records, setRecords] = useState<UploadRecord[]>([]);
@@ -430,6 +428,7 @@ export default function App() {
   const [onboardingSeen, setOnboardingSeen] = useState(false);
   const [uploadResultRecords, setUploadResultRecords] = useState<UploadRecord[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [storageLocation, setStorageLocation] = useState("localStorage");
   const [watermarkPreviewUrl, setWatermarkPreviewUrl] = useState(previewBaseImage);
   const [repoFileRefreshInterval, setRepoFileRefreshInterval] = useState(DEFAULT_REPO_FILE_REFRESH_INTERVAL);
   const [repoList, setRepoList] = useState<RepositoryItem[]>([]);
@@ -510,22 +509,37 @@ export default function App() {
   });
 
   useEffect(() => {
-    const state = readPersistedState();
-    setConfig(state.config);
-    setRecords(state.records);
-    setRepoSettingsMap(state.repoSettingsMap);
-    setRemoteServiceSettings(state.remoteServiceSettings ?? defaultRemoteServiceSettings);
-    setRemoteApiKeySecrets(state.remoteApiKeySecrets ?? {});
-    setWatermarkSettings(state.watermarkSettings ?? defaultWatermarkSettings);
-    setCompressionSettings(state.compressionSettings ?? defaultCompressionSettings);
-    setNamingSettings(state.namingSettings ?? defaultNamingSettings);
-    setTheme(state.theme === "dark" ? "dark" : "light");
-    setOnboardingSeen(state.onboardingSeen ?? false);
-    setActivityLogs(state.activityLogs ?? []);
-    setRepoFileRefreshInterval(
-      state.repoFileRefreshInterval ?? DEFAULT_REPO_FILE_REFRESH_INTERVAL,
-    );
-    setInitialized(true);
+    let cancelled = false;
+
+    void (async () => {
+      const [rawState, runtimeStoragePath] = await Promise.all([
+        readRuntimeStorage(STORAGE_KEY),
+        getRuntimeStoragePath(),
+      ]);
+      const state = normalizePersistedState(rawState);
+      if (cancelled) return;
+
+      setConfig(state.config);
+      setRecords(state.records);
+      setRepoSettingsMap(state.repoSettingsMap);
+      setRemoteServiceSettings(state.remoteServiceSettings ?? defaultRemoteServiceSettings);
+      setRemoteApiKeySecrets(state.remoteApiKeySecrets ?? {});
+      setWatermarkSettings(state.watermarkSettings ?? defaultWatermarkSettings);
+      setCompressionSettings(state.compressionSettings ?? defaultCompressionSettings);
+      setNamingSettings(state.namingSettings ?? defaultNamingSettings);
+      setTheme(state.theme === "dark" ? "dark" : "light");
+      setOnboardingSeen(state.onboardingSeen ?? false);
+      setActivityLogs(state.activityLogs ?? []);
+      setRepoFileRefreshInterval(
+        state.repoFileRefreshInterval ?? DEFAULT_REPO_FILE_REFRESH_INTERVAL,
+      );
+      setStorageLocation(runtimeStoragePath);
+      setInitialized(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -541,7 +555,8 @@ export default function App() {
 
   useEffect(() => {
     if (!initialized) return;
-    localStorage.setItem(
+
+    void writeRuntimeStorage(
       STORAGE_KEY,
       JSON.stringify({
         config,
@@ -2995,7 +3010,7 @@ export default function App() {
                       <CardDescription>这里展示当前程序的版权信息、许可证和基础说明。</CardDescription>
                     </div>
                     <img
-                      src="/logo.png"
+                      src={logoSrc}
                       alt="项目标识"
                       className="size-16 -rotate-6 rounded-2xl object-cover shadow-sm ring-1 ring-border"
                     />
@@ -3006,7 +3021,11 @@ export default function App() {
                   <p>版权方：小曦的园子</p>
                   <p>官方网站：https://xiaoxi.ac.cn/</p>
                   <p>许可证：MIT License</p>
-                  <p>本程序为纯前端应用，上传、建仓、删仓等操作均直接调用 GitHub API，本地配置保存在浏览器 localStorage。</p>
+                  <p>
+                    本程序为前端优先架构，上传、建仓、删仓等操作均直接调用 GitHub API。
+                    Web 部署默认使用浏览器 localStorage，桌面版会自动切换为本地 JSON 配置文件。
+                  </p>
+                  <p>当前配置存储位置：{storageLocation}</p>
                 </CardContent>
               </Card>
               <Card>
