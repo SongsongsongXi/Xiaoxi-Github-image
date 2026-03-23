@@ -51,18 +51,6 @@
 - 自动将配置保存到本地 `settings.json`
 - 不影响前端原有 Web 部署
 
-## 截图预留
-
-下面这些位置可以替换成你自己的项目截图：
-
-```md
-![概览页截图](./docs/placeholders/overview.png)
-![上传页截图](./docs/placeholders/upload.png)
-![远程服务截图](./docs/placeholders/remote-service.png)
-![桌面版截图](./docs/placeholders/desktop.png)
-```
-
-如果你暂时还没有整理截图，也可以先删除这段，后续再补。
 
 ## 快速开始
 
@@ -90,21 +78,6 @@ python image_center_server.py
 
 首次运行后，服务端会在 `backend/data/` 下生成自己的配置与数据库文件。
 
-### 3. 启动桌面前端壳
-
-```bash
-cd desktop
-npm install
-npm run start
-```
-
-打包桌面版：
-
-```bash
-cd desktop
-npm install
-npm run dist
-```
 
 默认情况下：
 
@@ -155,14 +128,6 @@ npm run dist
 
 接口文档目前内置在前端“远程服务”页面中，通过右上角文档按钮即可查看。
 
-## 发布建议
-
-如果你准备公开发布这个项目，建议补齐以下内容：
-
-- 完整截图
-- 版本更新日志
-- 示例业务 API 调用页面说明
-- 桌面版安装截图或发布页说明
 
 ## 许可证
 
